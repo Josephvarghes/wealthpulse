@@ -129,7 +129,7 @@ class GroqProvider(BaseAIProvider):
     """
     Ultra-fast LLM inference using Groq API (OpenAI compatible endpoint).
     """
-    def __init__(self, api_key: str, model: str = "llama-3.3-70b-versatile"):
+    def __init__(self, api_key: str, model: str = "qwen/qwen3.8-27b"):
         self.api_key = api_key
         self.model = model
         self.endpoint = "https://api.groq.com/openai/v1/chat/completions"
@@ -139,34 +139,58 @@ class GroqProvider(BaseAIProvider):
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"Structured Financial Context:\n{json.dumps(context, indent=2)}"},
-            ],
-            "response_format": {"type": "json_object"},
-            "temperature": 0.2,
-            "max_tokens": 600,
-        }
+        
+        # Candidate models to try in case of model_not_found / deprecation
+        candidate_models = [self.model]
+        for fallback in ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "llama-3.3-70b-versatile"]:
+            if fallback not in candidate_models:
+                candidate_models.append(fallback)
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(self.endpoint, headers=headers, json=payload)
-            response.raise_for_status()
-            data = response.json()
-            content = data["choices"][0]["message"]["content"]
-            parsed = json.loads(content)
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            last_exception = None
+            for model_candidate in candidate_models:
+                payload = {
+                    "model": model_candidate,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": f"Structured Financial Context:\n{json.dumps(context, indent=2)}"},
+                    ],
+                    "response_format": {"type": "json_object"},
+                    "temperature": 0.2,
+                    "max_tokens": 600,
+                }
+                try:
+                    response = await client.post(self.endpoint, headers=headers, json=payload)
+                    if response.status_code == 404 and "model_not_found" in response.text:
+                        logger.warning(f"Groq model '{model_candidate}' not found, trying next available model.")
+                        continue
+                    response.raise_for_status()
+                    data = response.json()
+                    content = data["choices"][0]["message"]["content"]
+                    parsed = json.loads(content)
 
-            return AIRecommendation(
-                ai_financial_summary=parsed.get("ai_financial_summary", "Summary unavailable."),
-                key_observation=parsed.get("key_observation", "No observation available."),
-                positive_behavior=parsed.get("positive_behavior", "Consistent tracking."),
-                main_concern=parsed.get("main_concern", "Review high expense items."),
-                practical_recommendation=parsed.get("practical_recommendation", "Track all outgoings daily."),
-                short_term_action=parsed.get("short_term_action", "Audit top category expenses."),
-                provider_used=f"groq ({self.model})",
-                is_fallback=False,
-            )
+                    return AIRecommendation(
+                        ai_financial_summary=parsed.get("ai_financial_summary", "Summary unavailable."),
+                        key_observation=parsed.get("key_observation", "No observation available."),
+                        positive_behavior=parsed.get("positive_behavior", "Consistent tracking."),
+                        main_concern=parsed.get("main_concern", "Review high expense items."),
+                        practical_recommendation=parsed.get("practical_recommendation", "Track all outgoings daily."),
+                        short_term_action=parsed.get("short_term_action", "Audit top category expenses."),
+                        provider_used=f"groq ({model_candidate})",
+                        is_fallback=False,
+                    )
+                except httpx.HTTPStatusError as e:
+                    last_exception = e
+                    if e.response.status_code == 404:
+                        continue
+                    raise
+                except Exception as e:
+                    last_exception = e
+                    raise
+
+            if last_exception:
+                raise last_exception
+            return None
 
 
 class GrokProvider(BaseAIProvider):
