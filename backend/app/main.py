@@ -1,9 +1,26 @@
+import sys
+from pathlib import Path
 import logging
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from backend.app.config import get_settings
-from backend.app.api.upload import router as upload_router
+
+# Ensure both repo root and backend directory are in sys.path
+_current_file = Path(__file__).resolve()
+_backend_dir = _current_file.parent.parent
+_repo_root = _backend_dir.parent
+
+for _p in (_repo_root, _backend_dir):
+    _p_str = str(_p)
+    if _p_str not in sys.path:
+        sys.path.insert(0, _p_str)
+
+try:
+    from backend.app.config import get_settings
+    from backend.app.api.upload import router as upload_router
+except ModuleNotFoundError:
+    from app.config import get_settings
+    from app.api.upload import router as upload_router
 
 # Configure logging
 logging.basicConfig(
@@ -24,7 +41,7 @@ app = FastAPI(
 origins = settings.cors_origins_list or ["http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all during local development for easy access
+    allow_origins=["*"],  # Allow all during local development and cloud deployments
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,4 +69,3 @@ def root():
         "documentation": "/docs",
         "health": "/api/health",
     }
-
