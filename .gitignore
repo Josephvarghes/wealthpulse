@@ -5,6 +5,10 @@ backend/.env
 frontend/.env
 *.local
 
+# Assistant & Local Workspace State
+SESSION_MEMORY.md
+HANDOFF.md
+
 # Python
 __pycache__/
 *.py[cod]
