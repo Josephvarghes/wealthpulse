@@ -96,8 +96,11 @@ export interface FullAnalysisResponse {
   metadata: {
     filename?: string;
     row_count?: number;
+    total_file_rows?: number;
     date_start?: string;
     date_end?: string;
+    available_months?: string[];
+    selected_month?: string;
   };
 }
 
