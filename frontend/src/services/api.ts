@@ -1,6 +1,6 @@
 import { FullAnalysisResponse } from '../types';
 
-const API_BASE = '/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
 
 export const api = {
   async uploadFile(file: File, month?: string): Promise<FullAnalysisResponse> {
@@ -49,4 +49,3 @@ export const api = {
     return response.json();
   },
 };
-

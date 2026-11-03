@@ -21,6 +21,7 @@
 [Architecture](#-system-architecture) •
 [Tech Stack](#-tech-stack) •
 [Getting Started](#-getting-started) •
+[Deployment Guide](DEPLOYMENT.md) •
 [API Specification](#-api-specification) •
 [Security & Privacy](#-security--privacy-first)
 
