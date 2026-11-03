@@ -15,7 +15,8 @@
 
 ## 1. Project Overview & Core Mission
 
-- **Project Name:** FinPulse (Personal Finance Intelligence & Recommendation System)
+- **Project Name:** WealthPulse (formerly FinPulse)
+- **GitHub Repository:** [`https://github.com/Josephvarghes/wealthpulse.git`](https://github.com/Josephvarghes/wealthpulse.git)
 - **Primary Source of Truth:** [`sdp.md`](./sdp.md)
 - **Primary Workflow:** Google Form → Google Sheet → Export CSV/XLSX → Web Upload → Python Financial Processing → Deterministic Behavior & Rule Engine → AI Context Generation (Groq/Grok/Safeguard) → Comprehensive Interactive Dashboard.
 - **Core Design Rule:**
