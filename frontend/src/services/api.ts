@@ -3,11 +3,12 @@ import { FullAnalysisResponse } from '../types';
 const API_BASE = '/api';
 
 export const api = {
-  async uploadFile(file: File): Promise<FullAnalysisResponse> {
+  async uploadFile(file: File, month?: string): Promise<FullAnalysisResponse> {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_BASE}/upload`, {
+    const query = month && month !== 'all' ? `?month=${encodeURIComponent(month)}` : '';
+    const response = await fetch(`${API_BASE}/upload${query}`, {
       method: 'POST',
       body: formData,
     });
@@ -29,8 +30,9 @@ export const api = {
     return response.json();
   },
 
-  async loadDemoData(): Promise<FullAnalysisResponse> {
-    const response = await fetch(`${API_BASE}/upload/demo`, {
+  async loadDemoData(month?: string): Promise<FullAnalysisResponse> {
+    const query = month && month !== 'all' ? `?month=${encodeURIComponent(month)}` : '';
+    const response = await fetch(`${API_BASE}/upload/demo${query}`, {
       method: 'POST',
     });
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { UploadSection } from './components/UploadSection';
+import { DateRangeSelector } from './components/DateRangeSelector';
 import { SummaryCards } from './components/SummaryCards';
 import { CategoryChart } from './charts/CategoryChart';
 import { TrendsChart } from './charts/TrendsChart';
@@ -15,6 +16,8 @@ import { Sparkles, Shield, BarChart3 } from 'lucide-react';
 export const App: React.FC = () => {
   const [currency, setCurrency] = useState<Currency>('INR');
   const [analysisData, setAnalysisData] = useState<FullAnalysisResponse | null>(null);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,8 +29,10 @@ export const App: React.FC = () => {
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
     setError(null);
+    setCurrentFile(file);
+    setSelectedMonth('all');
     try {
-      const result = await api.uploadFile(file);
+      const result = await api.uploadFile(file, 'all');
       setAnalysisData(result);
     } catch (err: any) {
       setError(err?.message || 'Failed to process file. Please ensure it matches the required format.');
@@ -39,11 +44,32 @@ export const App: React.FC = () => {
   const handleLoadDemo = async () => {
     setIsLoading(true);
     setError(null);
+    setCurrentFile(null);
+    setSelectedMonth('all');
     try {
-      const result = await api.loadDemoData();
+      const result = await api.loadDemoData('all');
       setAnalysisData(result);
     } catch (err: any) {
       setError(err?.message || 'Failed to load demo data. Please verify the backend is running.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSelectMonth = async (month: string) => {
+    setSelectedMonth(month);
+    setIsLoading(true);
+    setError(null);
+    try {
+      let result: FullAnalysisResponse;
+      if (currentFile) {
+        result = await api.uploadFile(currentFile, month);
+      } else {
+        result = await api.loadDemoData(month);
+      }
+      setAnalysisData(result);
+    } catch (err: any) {
+      setError(err?.message || `Failed to filter data for ${month}.`);
     } finally {
       setIsLoading(false);
     }
@@ -65,6 +91,18 @@ export const App: React.FC = () => {
           isLoading={isLoading}
           error={error}
         />
+
+        {/* Multi-Month Date Range Selector */}
+        {analysisData?.metadata?.available_months && analysisData.metadata.available_months.length > 0 && (
+          <DateRangeSelector
+            availableMonths={analysisData.metadata.available_months}
+            selectedMonth={analysisData.metadata.selected_month || selectedMonth}
+            onSelectMonth={handleSelectMonth}
+            isLoading={isLoading}
+            totalRows={analysisData.metadata.total_file_rows || analysisData.metadata.row_count}
+            filteredRows={analysisData.metadata.row_count}
+          />
+        )}
 
         {/* Dashboard Content */}
         {analysisData ? (
